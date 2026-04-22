@@ -12,14 +12,17 @@
 #define MAX_ACTIVE_USERS 5
 
 
-int active_clients_fds[MAX_ACTIVE_USERS]; 
+int active_clients_fds_pt[MAX_ACTIVE_USERS]; 
 int client_cnt = 0;
 
 
 void * handle_client_communication(void * sock_fd);
 int close_client_socket(int socket_fd);
 
+
+
 int main(){
+
 
     int server_socket_fd = socket(AF_INET, SOCK_STREAM, 0);
     if (server_socket_fd == -1) return 10;
@@ -71,8 +74,10 @@ int main(){
 void * handle_client_communication(void * sock_fd){
     int client_socket_fd = *(int *)sock_fd;
 
-    active_clients_fds[client_cnt] = client_socket_fd;
+    active_clients_fds_pt[client_cnt] = client_socket_fd;
     client_cnt++;
+
+    // Send welcome message
 
     printf("New client on socket: %d\n", client_socket_fd);
     char welcome_msg[] = "Welcome to server!";
@@ -82,7 +87,14 @@ void * handle_client_communication(void * sock_fd){
             return NULL;
         }
 
+    for (int i=0;i<5; i++){
+    printf("%d, \n", active_clients_fds_pt[i]); // TEMP print active fds list
+    }
+
     while (true){
+
+        // Receive message
+
         char recv_buffer[1024] = {0};
         ssize_t res_recv = recv(client_socket_fd, &recv_buffer, sizeof(recv_buffer), 0);
         if (res_recv <= 0) {
@@ -91,9 +103,11 @@ void * handle_client_communication(void * sock_fd){
         }
         else printf("Received from client %d: %s\n", client_socket_fd, recv_buffer);
 
+        // Broadcast message
+
         for (int i = 0; i < client_cnt; i++){
-            if (active_clients_fds[i] != client_socket_fd && active_clients_fds[i] != -1){
-                int res_send = send(active_clients_fds[i], &recv_buffer, res_recv, 0);
+            if (active_clients_fds_pt[i] != client_socket_fd){
+                int res_send = send(active_clients_fds_pt[i], &recv_buffer, res_recv, 0);
                 printf("Sent %d %s\n", res_send, recv_buffer);
                 if (res_send <= 0) {
                     close_client_socket(client_socket_fd);
@@ -108,9 +122,14 @@ void * handle_client_communication(void * sock_fd){
 int close_client_socket(int socket_fd){
     printf("Closing socket %d\n", socket_fd);
     for (int i = 0; i < MAX_ACTIVE_USERS; i++){
-        if (active_clients_fds[i] == socket_fd){
-            active_clients_fds[i] = -1;
+        if (active_clients_fds_pt[i] == socket_fd){
+            active_clients_fds_pt[i] = 0;
+            for (int j = i; j < MAX_ACTIVE_USERS-1; j++){
+                active_clients_fds_pt[j] = active_clients_fds_pt[j+1];
+            }
+            client_cnt--;
             shutdown(socket_fd, SHUT_RDWR);
+            break;
         }
     }
 }
