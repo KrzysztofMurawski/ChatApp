@@ -9,6 +9,7 @@
 #include <arpa/inet.h>
 
 #include <pthread.h>
+#include <signal.h>
 
 
 #define SERVER_IP_ADDRESS "127.0.0.1"
@@ -55,7 +56,7 @@ int main(){
         else printf("Received: %d %s\n", res_recv, recv_buffer);
     }
     
-
+    pthread_cancel(thread_id);
     close_connection(client_socket_fd);
     return 0;
 }
