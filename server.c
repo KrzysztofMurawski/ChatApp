@@ -11,7 +11,7 @@
 #define PORT 8000
 #define MAX_ACTIVE_USERS 5
 
-
+pthread_mutex_t mutex;
 int active_clients_fds_pt[MAX_ACTIVE_USERS]; 
 int client_cnt = 0;
 
@@ -22,7 +22,7 @@ int close_client_socket(int socket_fd);
 
 
 int main(){
-
+    pthread_mutex_init(&mutex, NULL);
 
     int server_socket_fd = socket(AF_INET, SOCK_STREAM, 0);
     if (server_socket_fd == -1) return 10;
@@ -67,6 +67,8 @@ int main(){
     int res_shutdown = shutdown(server_socket_fd, SHUT_RDWR);
     if (res_shutdown == -1) return 19;
 
+    pthread_mutex_destroy(&mutex);
+
     return 0;
 }
 
@@ -74,8 +76,10 @@ int main(){
 void * handle_client_communication(void * sock_fd){
     int client_socket_fd = *(int *)sock_fd;
 
+    pthread_mutex_lock(&mutex);
     active_clients_fds_pt[client_cnt] = client_socket_fd;
     client_cnt++;
+    pthread_mutex_unlock(&mutex);
 
     // Send welcome message
 
@@ -87,12 +91,16 @@ void * handle_client_communication(void * sock_fd){
             return NULL;
         }
 
+
+
     for (int i=0;i<5; i++){
     printf("%d, \n", active_clients_fds_pt[i]); // TEMP print active fds list
     }
 
     while (true){
 
+
+        
         // Receive message
 
         char recv_buffer[1024] = {0};
@@ -101,7 +109,7 @@ void * handle_client_communication(void * sock_fd){
             close_client_socket(client_socket_fd);
             return NULL;
         }
-        else printf("Received from client %d: %s\n", client_socket_fd, recv_buffer);
+        else printf("Received from client %d: %d %s\n", client_socket_fd, res_recv, recv_buffer);
 
         // Broadcast message
 
@@ -123,11 +131,15 @@ int close_client_socket(int socket_fd){
     printf("Closing socket %d\n", socket_fd);
     for (int i = 0; i < MAX_ACTIVE_USERS; i++){
         if (active_clients_fds_pt[i] == socket_fd){
+
+            pthread_mutex_lock(&mutex);
             active_clients_fds_pt[i] = 0;
             for (int j = i; j < MAX_ACTIVE_USERS-1; j++){
                 active_clients_fds_pt[j] = active_clients_fds_pt[j+1];
             }
             client_cnt--;
+            pthread_mutex_unlock(&mutex);
+
             shutdown(socket_fd, SHUT_RDWR);
             break;
         }

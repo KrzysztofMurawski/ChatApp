@@ -72,7 +72,7 @@ void * handle_sending_messages(void *sock_fd){
         ssize_t char_count = getline(&line, &line_size, stdin);
         printf("You entered: %d %s", char_count, line);
     
-        int res_send = send(server_socket_fd, line, line_size, 0); 
+        int res_send = send(server_socket_fd, line, char_count, 0); 
         if (res_send <= 0) {
             close_connection(server_socket_fd);
             return NULL;
