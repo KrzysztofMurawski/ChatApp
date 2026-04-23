@@ -23,8 +23,6 @@ void close_connection(int sock_fd);
 int main(){
 
     char server_ip[] = SERVER_IP_ADDRESS;
-    char * server_ip_pt = (char *)&server_ip;
-
 
     int client_socket_fd = socket(AF_INET, SOCK_STREAM, 0);
     if (client_socket_fd == -1) return 10;
@@ -33,7 +31,7 @@ int main(){
     struct sockaddr_in * server_address_pt = malloc(sizeof(struct sockaddr_in));
     server_address_pt->sin_family = AF_INET;
     server_address_pt->sin_port = htons(PORT);
-    inet_pton(AF_INET, server_ip_pt, &server_address_pt->sin_addr.s_addr);
+    inet_pton(AF_INET, server_ip, &server_address_pt->sin_addr.s_addr);
 
 
     int res_connect = connect(client_socket_fd, 
