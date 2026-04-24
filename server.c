@@ -11,8 +11,14 @@
 #define PORT 8000
 #define MAX_ACTIVE_USERS 5
 
+struct client {
+    int fd;
+    char username[24];
+};
+
 pthread_mutex_t mutex;
 int active_clients_fds_pt[MAX_ACTIVE_USERS]; 
+struct client active_clients[MAX_ACTIVE_USERS];
 int client_cnt = 0;
 
 
@@ -77,7 +83,11 @@ void * handle_client_communication(void * sock_fd){
     int client_socket_fd = *(int *)sock_fd;
 
     pthread_mutex_lock(&mutex);
-    active_clients_fds_pt[client_cnt] = client_socket_fd;
+    // active_clients_fds_pt[client_cnt] = client_socket_fd;
+    
+    active_clients[client_cnt].fd = client_socket_fd;
+    char tempname[] = "Tempname";
+    snprintf(active_clients[client_cnt].username, sizeof(tempname), tempname);
     client_cnt++;
     pthread_mutex_unlock(&mutex);
 
@@ -91,11 +101,6 @@ void * handle_client_communication(void * sock_fd){
             return NULL;
         }
 
-
-
-    for (int i=0;i<5; i++){
-    printf("%d, \n", active_clients_fds_pt[i]); // TEMP print active fds list
-    }
 
     while (true){
 
@@ -114,9 +119,9 @@ void * handle_client_communication(void * sock_fd){
         // Broadcast message
 
         for (int i = 0; i < client_cnt; i++){
-            if (active_clients_fds_pt[i] != client_socket_fd){
-                int res_send = send(active_clients_fds_pt[i], &recv_buffer, res_recv, 0);
-                printf("Sent %d %s\n", res_send, recv_buffer);
+            if (active_clients[i].fd != client_socket_fd){
+
+                int res_send = send(active_clients[i].fd, &recv_buffer, res_recv, 0);
                 if (res_send <= 0) {
                     close_client_socket(client_socket_fd);
                     return NULL;
@@ -130,14 +135,15 @@ void * handle_client_communication(void * sock_fd){
 int close_client_socket(int socket_fd){
     printf("Closing socket %d\n", socket_fd);
     for (int i = 0; i < MAX_ACTIVE_USERS; i++){
-        if (active_clients_fds_pt[i] == socket_fd){
+        if (active_clients[i].fd == socket_fd){
 
             pthread_mutex_lock(&mutex);
-            active_clients_fds_pt[i] = 0;
+
             for (int j = i; j < MAX_ACTIVE_USERS-1; j++){
-                active_clients_fds_pt[j] = active_clients_fds_pt[j+1];
+                active_clients[j] = active_clients[j+1];
             }
             client_cnt--;
+
             pthread_mutex_unlock(&mutex);
 
             shutdown(socket_fd, SHUT_RDWR);

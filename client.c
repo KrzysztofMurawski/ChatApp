@@ -20,7 +20,9 @@ void * handle_sending_messages(void *sock_fd);
 void close_connection(int sock_fd);
 
 
-int main(){
+int main(int argc, char *argv[]){
+
+
 
     char server_ip[] = SERVER_IP_ADDRESS;
 
@@ -77,6 +79,8 @@ void * handle_sending_messages(void *sock_fd){
         }
     }
 }
+
+
 
 void close_connection(int sock_fd){
     printf("Closing connection...");
