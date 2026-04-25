@@ -35,7 +35,6 @@ int main(int argc, char *argv[]){
     // Save name and fd to a client stuct
     struct client *client_info = malloc(sizeof(struct client));
     client_info->fd = client_socket_fd;
-    printf("cmd argument : %s\n", argv[1]);
     if (argc > 1) strcpy(client_info->username, argv[1]);
     else strcpy(client_info->username, "No_name");
 
@@ -58,12 +57,12 @@ int main(int argc, char *argv[]){
     // receiving loop
     bool server_active = true;
     while (server_active){
-        char recv_buffer[1024] = {0};   
+        char recv_buffer[1048] = {0};   
         int res_recv = recv(client_socket_fd, &recv_buffer, sizeof(recv_buffer), 0);
         if (res_recv <= 0) {
             server_active = false;
         }
-        else printf("Received: %d %s\n", res_recv, recv_buffer);
+        else printf("%s\n", recv_buffer);
     }
     
     pthread_cancel(thread_id);
@@ -75,7 +74,6 @@ int main(int argc, char *argv[]){
 void * handle_sending_messages(void *args){
     struct client *client_info = args;
 
-    printf("Usrname: %s\n", client_info->username);
     int res_send = send(client_info->fd, &client_info->username, sizeof(client_info->username), 0); 
     if (res_send <= 0) {
         close_connection(client_info->fd);
@@ -87,7 +85,6 @@ void * handle_sending_messages(void *args){
 
     while (true){
         ssize_t char_count = getline(&line, &line_size, stdin);
-        printf("You entered: %d %s", char_count, line);
     
         int res_send = send(client_info->fd, line, char_count, 0); 
         if (res_send <= 0) {

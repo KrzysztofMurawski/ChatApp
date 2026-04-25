@@ -126,17 +126,22 @@ void * handle_client_communication(void * sock_fd){
             close_client_socket(client_socket_fd);
             return NULL;
         }
-        else {
-            int i = 0;
-            while (i < client_cnt && active_clients[i].fd != client_socket_fd) ++i;
-            printf("Received from client %s: %d %s\n", active_clients[i].username, res_recv, recv_buffer);
-        }
+
         // Broadcast message
+
+        char msg_to_send[1048];
+
+        int j = 0;
+        while (j < client_cnt && active_clients[j].fd != client_socket_fd) ++j;
+        strcpy(msg_to_send, username);
+        strcat(msg_to_send, ": ");
+        strcat(msg_to_send, recv_buffer);
+        printf("Received from %s: %d %s\n", active_clients[j].username, res_recv, recv_buffer);
 
         for (int i = 0; i < client_cnt; i++){
             if (active_clients[i].fd != client_socket_fd){
 
-                int res_send = send(active_clients[i].fd, &recv_buffer, res_recv, 0);
+                int res_send = send(active_clients[i].fd, &msg_to_send, 24 + res_recv, 0);
                 if (res_send <= 0) {
                     close_client_socket(client_socket_fd);
                     return NULL;
