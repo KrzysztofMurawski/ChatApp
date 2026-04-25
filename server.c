@@ -1,5 +1,6 @@
 #include <stdio.h>
 #include <stdbool.h>
+#include <string.h>
 
 #include <sys/socket.h>
 #include <netinet/in.h>
@@ -82,12 +83,25 @@ int main(){
 void * handle_client_communication(void * sock_fd){
     int client_socket_fd = *(int *)sock_fd;
 
+    // Get client's username
+    char username[24] = "Tempname";
+
+    char username_buffer[1024] = {0};
+    ssize_t res_recv = recv(client_socket_fd, &username_buffer, sizeof(username_buffer), 0);
+    if (res_recv <= 0) {
+        close_client_socket(client_socket_fd);
+        return NULL;
+    } else {
+        strcpy(username, username_buffer);
+    }
+
+    
+    // Update active clients list
     pthread_mutex_lock(&mutex);
-    // active_clients_fds_pt[client_cnt] = client_socket_fd;
     
     active_clients[client_cnt].fd = client_socket_fd;
-    char tempname[] = "Tempname";
-    snprintf(active_clients[client_cnt].username, sizeof(tempname), tempname);
+    
+    snprintf(active_clients[client_cnt].username, sizeof(username), username);
     client_cnt++;
     pthread_mutex_unlock(&mutex);
 
@@ -103,8 +117,6 @@ void * handle_client_communication(void * sock_fd){
 
 
     while (true){
-
-
         
         // Receive message
 
@@ -114,8 +126,11 @@ void * handle_client_communication(void * sock_fd){
             close_client_socket(client_socket_fd);
             return NULL;
         }
-        else printf("Received from client %d: %d %s\n", client_socket_fd, res_recv, recv_buffer);
-
+        else {
+            int i = 0;
+            while (i < client_cnt && active_clients[i].fd != client_socket_fd) ++i;
+            printf("Received from client %s: %d %s\n", active_clients[i].username, res_recv, recv_buffer);
+        }
         // Broadcast message
 
         for (int i = 0; i < client_cnt; i++){
